@@ -3,7 +3,7 @@ name: ts-testing
 description: Use when writing, reviewing, or refactoring vitest tests. Load when you see *.test.ts or *.spec.ts files, nested describe blocks, loose assertions (toBeTruthy), over-mocking, slow tests, or async testing needs. Covers AAA pattern, parameterized tests, test doubles hierarchy, mock cleanup, test isolation, and performance optimization. Keywords include vitest, testing, TDD, assertions, mocks, stubs, fakes, spies, beforeEach, describe, it, expect, vi.mock, it.each.
 compatibility: Requires vitest testing framework
 metadata:
-  version: "1.0"
+  version: "1.1"
 ---
 
 # Vitest Best Practices
@@ -14,6 +14,7 @@ Comprehensive patterns for writing maintainable, effective vitest tests. Focused
 
 - **NEVER skip global mock cleanup configuration** - Manual cleanup appears safe but creates "action at a distance" failures: a mock in test file A leaks into test file B running 3 files later, causing non-deterministic failures that only appear when tests run in specific orders. These Heisenbugs waste hours in CI debugging. Configure `clearMocks: true`, `resetMocks: true`, `restoreMocks: true` in `vitest.config.ts` once to eliminate this entire class of order-dependent failure.
 - **NEVER nest describe blocks more than 2 levels deep** - Deep nesting creates cognitive overhead and excessive indentation. Put context in test names instead: `it('should add item to empty cart')` vs `describe('when cart is empty', () => describe('addItem', ...))`.
+- **NEVER export internal functions just to test them** - Tests should verify behavior through the public API, not reach into implementation details. Exporting private helpers, internal utilities, or implementation functions solely to enable testing is a code smell that indicates either: (1) the public API is insufficient for testing the behavior, or (2) the tests are verifying implementation details instead of behavior. If internal logic is complex enough to warrant dedicated testing, extract it into a separate module with its own public API and test file. Private functions get tested indirectly through the public functions that call them.
 - **NEVER mock your own pure functions** - Mocking internal code makes tests brittle and less valuable. Mock only external dependencies (APIs, databases, third-party libraries). Prefer fakes > stubs > spies > mocks.
 - **NEVER use loose assertions like `toBeTruthy()` or `toBeDefined()`** - These assertions pass for multiple distinct values you never intended: `toBeTruthy()` passes for `1`, `"false"`, `[]`, and `{}` - all semantically different. When refactoring changes `getUser()` from returning `{id: 1}` to returning `1`, your test still passes but your production code breaks. Loose assertions create false confidence that evaporates in production. `toBeTypeOf()` is NOT a loose assertion.
 - **NEVER test implementation details instead of behavior** - Tests that verify "function X was called 3 times" create false failures: you optimize code to call X once via memoization, all tests fail, yet the user experience is identical (and faster). These tests actively punish performance improvements and refactoring. Test what users observe (outputs given inputs), not how your code achieves it internally.
@@ -117,7 +118,7 @@ The report format provides:
 - Summary table for tracking all issues
 
 **When to use the report template:**
-- Skill invoked directly via `/accelint-ts-testing <path>`
+- Skill invoked directly via `/ts-testing <path>`
 - User asks to "review test code" or "audit tests" across file(s), invoking skill implicitly
 
 **When NOT to use the report template:**

@@ -72,7 +72,7 @@ See references/ for pattern guidance on each category.
 
 ## Executive Summary
 
-Completed systematic audit of [file/module path] following accelint-ts-testing standards. Identified [N] test quality issues across [N] severity levels. [Brief description of what this module does and why reliable tests matter here].
+Completed systematic audit of [file/module path] following ts-testing standards. Identified [N] test quality issues across [N] severity levels. [Brief description of what this module does and why reliable tests matter here].
 
 **Key Findings:**
 - [N] Critical issues (false confidence, shared state, mock leakage across test files)
