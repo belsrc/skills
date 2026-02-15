@@ -231,8 +231,3 @@ This skill follows these principles:
 - [What Are Agent Skills?](https://agentskills.io/what-are-skills.md)
 - [Agent Skill Spec](https://agentskills.io/specification.md)
 
----
-
-## License
-
-Apache 2.0

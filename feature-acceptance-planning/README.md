@@ -56,7 +56,3 @@ Outputs: .agents/acceptance/dark-mode-support-requirements.md
 
 This is a single-file skill with no additional references or scripts:
 - `SKILL.md` - Complete requirements definition workflow
-
-## License
-
-Apache-2.0

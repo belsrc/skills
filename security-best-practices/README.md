@@ -119,6 +119,3 @@ Layer security controls so single vulnerability doesn't compromise entire system
 - https://github.com/hoodini/ai-agents-skills/blob/master/skills/owasp-security/SKILL.md
 - https://github.com/sickn33/antigravity-awesome-skills/blob/main/skills/cc-skill-security-review/SKILL.md
 
-## License
-
-Apache-2.0

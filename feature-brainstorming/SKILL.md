@@ -1,6 +1,8 @@
 ---
 name: feature-brainstorming
 description: Use when user wants to brainstorm new ideas, design features, create POCs, draft RFCs, or explore approaches before implementation. Use for early-stage conceptual work when requirements are not yet clear. Precedes acceptance planning. Keywords: brainstorm, design, POC, RFC, explore approaches, ideation, feature discovery.
+metadata:
+  version: "1.0"
 ---
 
 # Brainstorming Ideas Into Designs

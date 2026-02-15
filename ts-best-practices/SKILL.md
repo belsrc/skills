@@ -1,6 +1,8 @@
 ---
 name: ts-best-practices
 description: Comprehensive TypeScript/JavaScript coding standards focusing on type safety, defensive programming, and code correctness. Use when (1) Writing or reviewing TS/JS code, (2) Fixing type errors or avoiding any/enum/null, (3) Implementing control flow, state management, or error handling, (4) Applying zero-value pattern or immutability, (5) Code review for TypeScript anti-patterns. Covers naming conventions, function design, return values, bounded iteration, input validation. For performance optimization, use ts-performance skill. For documentation, use ts-documentation skill.
+metadata:
+  version: "1.0"
 ---
 
 # JavaScript and TypeScript Best Practices

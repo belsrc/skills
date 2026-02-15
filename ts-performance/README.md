@@ -82,7 +82,3 @@ This skill minimizes context usage through progressive loading:
 - ❌ Place `try/catch` in hot paths - degrades V8 optimization
 
 See reference files for ✅ correct patterns.
-
-## License
-
-Apache-2.0

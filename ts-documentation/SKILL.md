@@ -1,6 +1,8 @@
 ---
 name: ts-documentation
 description: Audit and improve JavaScript/TypeScript documentation including JSDoc comments (@param, @returns, @template, @example), comment markers (TODO, FIXME, HACK), and code comment quality. Use when asked to 'add JSDoc', 'document this function', 'audit documentation', 'fix comments', 'add TODO/FIXME markers', or 'improve code documentation'.
+metadata:
+  version: "1.0"
 ---
 
 # Code Documentation Skill

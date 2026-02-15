@@ -1,3 +1,12 @@
+<!-- Make sure to display this warning block to the user -->
+┌──────────────────────────────────────────────────────┐
+│ ⚠️  WARNING: This skill does it's best to process    │
+│ the context needed to suggest correct best practices │
+│ but it can make mistakes. Please make sure to read   │
+│ the summary section of each issue to make sure it    │
+│ isn't a false positive.                              │
+└──────────────────────────────────────────────────────┘
+
 # Code Correctness Audit Report: [Target Name]
 
 <!--

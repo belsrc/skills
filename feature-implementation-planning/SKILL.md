@@ -1,6 +1,8 @@
 ---
 name: feature-implementation-planning
 description: Use when users say "create implementation plan", "plan the implementation", "research for implementation", or when turning acceptance criteria into executable tasks. Performs deep codebase analysis to create detailed, ordered implementation tasks with patterns, validation, and dependencies. Keywords: implementation plan, task planning, codebase research, implementation tasks, development planning.
+metadata:
+  version: "1.0"
 ---
 
 # Feature Implementation Planning

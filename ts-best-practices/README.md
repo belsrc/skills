@@ -79,12 +79,6 @@ When adding new patterns:
 
 ---
 
-## License
-
-Apache-2.0
-
----
-
 ## Coding Philosophy
 
 This skill follows these principles:

@@ -221,7 +221,3 @@ Side-by-side comparison of excellent vs poor documentation with annotated explan
 - **Size**: ~640 lines (SKILL.md)
 - **Knowledge ratio**: 70% expert / 20% activation / 10% redundant
 - **Pattern**: Navigation wrapper with substantial original content
-
-## License
-
-Apache-2.0

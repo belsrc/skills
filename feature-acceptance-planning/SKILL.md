@@ -1,6 +1,8 @@
 ---
 name: feature-acceptance-planning
 description: Use when users say "define acceptance criteria", "create requirements", "plan a feature", or when starting feature development. Defines requirements, acceptance criteria, and success metrics for features before implementation. Keywords: requirements, acceptance criteria, user story, feature planning, specifications.
+metadata:
+  version: "1.0"
 ---
 
 # Feature Acceptance Planning

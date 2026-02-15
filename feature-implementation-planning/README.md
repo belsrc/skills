@@ -169,7 +169,3 @@ A good implementation plan:
 - ✅ Validation commands are executable
 - ✅ Design decisions explain rationale
 - ✅ External docs link to specific sections
-
-## License
-
-Apache-2.0

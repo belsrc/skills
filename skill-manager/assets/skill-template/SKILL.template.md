@@ -11,9 +11,7 @@ description: Use when users say "[trigger phrase 1]", "[trigger phrase 2]", or w
 # ✅ GOOD: "Use when users say 'create X', 'build Y', or when working with .ext files for purpose A, purpose B, or purpose C"
 # ❌ BAD:  "Helps with various tasks" (vague, no triggers, no keywords)
 #
-license: Apache-2.0
 metadata:
-  author: gohypergiant
   version: "1.0"
 ---
 
