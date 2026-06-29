@@ -9,17 +9,29 @@ Convene a small council of engineering personas, get an independent take from ea
 
 ## How it works
 
-The skill runs in two layers so the routing is auditable:
+Routing is deterministic and text-only. Discovery and the council are two map-reduce stages over isolated subagents.
 
 ```
-request ──► [Layer 1: classify] ──► topic ──► [Layer 2: lookup] ──► members
-              keyword-first,                      pure table,
-              llm fallback                        deterministic
+request
+   │
+   ▼
+[route]  Layer 1 classify ──► topic ──► Layer 2 lookup ──► members      deterministic
+   │
+   ▼
+[discover]  map: 1..n discovery subagents read files in their own context
+            reduce: merge findings into one lean RepoBrief                grounds the council
+   │
+   ▼
+[echo]  selection + brief + files read                                   audit gate
+   │
+   ▼
+[council]  map: one persona subagent per member, given the RepoBrief
+           reduce: synthesize positions, agreements, splits               uncorrelated takes
 ```
 
-Layer 2 is a literal lookup in `references/routing.md`: a topic plus a mode always yields the same member set. Layer 1 picks the topic, and it is keyword-first so the common path is reproducible. The model only reasons over the closed topic enum when no anchor terms match.
+Routing runs in two layers so it stays auditable. Layer 2 is a literal lookup in `references/routing.md`: a topic plus a mode always yields the same member set. Layer 1 picks the topic, keyword-first so the common path is reproducible, with the model reasoning over the closed topic enum only when no anchor terms match.
 
-Selection is then run through three independent isolated subagents (one per member), so each persona reasons from a clean context anchored only on its own definition and the request. That isolation is the whole point: it produces uncorrelated takes instead of personas that have read each other and converged.
+Both fan-outs use isolated subagents on purpose. In discovery, raw file contents live and die inside the discovery subagents, so only distilled findings reach the orchestrator and the council never holds file dumps. In the council, each persona reasons from a clean context anchored on its own definition, the request, and the shared brief, which produces uncorrelated takes instead of personas that have read each other and converged.
 
 ## Step 1: Determine the mode
 
@@ -38,32 +50,59 @@ Resolve selection in this precedence order. The first match wins. Record which b
 
 Once you have the topic, read the member set from the table: `defaultDuo` for duo mode, `defaultTriad` for triad mode. For the few topics whose duo is marked *flex*, pick the polarity pair from `references/council.md` whose axis best matches the request, and say so in the note.
 
-## Step 3: Echo the selection before spawning
+## Step 3: Discover repo context (centralized brief)
 
-This is the audit gate. Print the resolved selection so the user can see and override how the council was chosen, then proceed without waiting unless the user objected on a prior turn.
+Discovery grounds the council in the actual codebase instead of only the request text. It is on by default. It runs when both hold: the skill is running inside a repo, and the request implicates concrete artifacts (a named file, command, or module, or a possessive such as "this CLI tool" or "our auth module"). It skips automatically for abstract questions whose answer repo state cannot change ("optimize early or late, in general"), and it degrades to text-only when there is no repo.
+
+Triggering and overrides:
+
+- **Default on** under the conditions above. Set `rooted: true` on the brief.
+- **Opt out.** If the user asks to skip grounding ("no discovery", "just the principle", "skip the repo"), set `rooted: false` and reason from the request alone.
+- **Force on.** If the user asks to ground it, run discovery even for a borderline-abstract request.
+- **No repo, or nothing relevant found.** Set `rooted: false` (no repo) or `rooted: true` with a summary that says nothing bearing on the question was found, so the personas know they are reasoning from text.
+
+How discovery runs, as map-reduce:
+
+1. **Derive 1 to n scoped questions** from the request and the topic. Default to one question for a focused request. Fan out only when the request has separable facets ("does the tool already persist output?" and "is there an existing output flag elsewhere?" are two). Cap at 4. Use the topic's discovery hints in `references/routing.md` to seed what to look for, the same way the topic seeds member selection.
+2. **Spawn one discovery subagent per question**, in parallel and isolated. Each reads a bounded set of files in its own context (cap each at a few files), and returns a `DiscoveryFinding`. Raw file contents stay inside the subagent; only the finding returns.
+3. **Merge the findings into one lean `RepoBrief`.** Union `filesRead`, collect `conventions`, and synthesize the `facts` into `summary`. Do not paste raw file contents into the brief. The brief is what the council acts on, not a mirror of the tree.
+
+Keep discovery scoped. The failure mode is a brief that balloons the context, which the fan-out prevents only if each subagent returns findings rather than file dumps.
+
+Assume the repo is trusted. Feeding file contents to subagents is a prompt-injection surface if the repo holds untrusted material; for v1 that assumption is stated, not defended.
+
+## Step 4: Echo the selection before spawning
+
+This is the audit gate. Print the resolved selection and the discovery brief so the user can see and override both how the council was chosen and what it was grounded in, then proceed without waiting unless the user objected on a prior turn.
 
 ```
 Council: <topic> · <mode>
 Members: <member list>
 Routed by: <explicit | keyword | llm>
 Why: <one line>
+Grounded: <rooted ? "yes" : "no">
+Files read: <files, or "none (reasoning from the request)">
+Brief: <one to three line summary, or "n/a">
 ```
 
-The `routedBy` field is the thing that makes a routing decision inspectable after the fact, so never omit it.
+The `routedBy` field makes the routing inspectable; the files-read line makes the grounding inspectable, so a mis-scoped discovery is visible rather than silent. Never omit either.
 
-## Step 4: Spawn the council
+## Step 5: Spawn the council
 
-Launch one subagent per selected member, all in the same turn so they run in parallel and isolated. Give each subagent exactly three things and nothing else:
+Launch one subagent per selected member, all in the same turn so they run in parallel and isolated. Give each subagent exactly these things and nothing else:
 
 1. an instruction to read `references/personas/<member>.md` and adopt it,
 2. the user's request verbatim,
-3. the instruction to return only a `PersonaResponse` JSON object (schema below), no prose around it.
+3. the shared `RepoBrief`,
+4. the instruction to return only a `PersonaResponse` JSON object (schema below), no prose around it.
 
-Do not let a subagent see another member's response. The isolation is what keeps the takes uncorrelated.
+When the brief is `rooted`, the persona applies its lens to that evidence and not only the request text, and lists the specific repo facts its verdict leans on in `groundedIn`. When it is not rooted, the persona reasons from the request and omits `groundedIn`.
 
-## Step 5: Synthesize with structured dissent
+Do not let a subagent see another member's response. The isolation is what keeps the takes uncorrelated. Every persona gets the same brief, so the only thing that differs between them is the lens.
 
-Collect the `PersonaResponse` objects and produce the output below. Surface disagreement, do not vote it away. Diff the `verdict` and `tradeoffsRaised` fields across members to find the contested axes mechanically, rather than guessing where they disagree.
+## Step 6: Synthesize with structured dissent
+
+Collect the `PersonaResponse` objects and produce the output below. Surface disagreement, do not vote it away. Diff the `verdict` and `tradeoffsRaised` fields across members to find the contested axes mechanically, rather than guessing where they disagree. When members carry `groundedIn`, note where a position leans on a repo fact, and when a split turns on a repo fact rather than pure principle, say so, because that is the disagreement most worth the reader's attention.
 
 Use this exact structure:
 
@@ -71,24 +110,24 @@ Use this exact structure:
 ## <topic> council · <mode>
 
 ### Positions
-- **<Member>** (<verdict>): <one to two line condensation of stance + recommendation>
+- **<Member>** (<verdict>): <one to two line condensation of stance + recommendation> [grounded | from principle]
 - ... one bullet per member
 
 ### Where they agree
 <the shared ground, if any. omit the section if there is none>
 
 ### Where they split
-<the contested axes. for each, name the tradeoff and which member sits on which side. this is the heart of the output>
+<the contested axes. for each, name the tradeoff and which member sits on which side. flag any split that turns on a repo fact. this is the heart of the output>
 
 ### Reading
 <either a synthesized recommendation when the evidence points one way, or an explicit handoff: "the call hinges on <axis>; if you weight <X> over <Y>, go with <member>'s read.">
 ```
 
-Only produce a single verdict tally when the question is genuinely binary, and even then show the split.
+Only produce a single verdict tally when the question is genuinely binary, and even then show the split. Mark each position as grounded or from principle only when discovery ran; with no brief, drop the tag.
 
-## The persona response contract
+## The contracts
 
-Every subagent returns this shape. Fixing the schema makes synthesis mechanical instead of prose-parsing.
+Every persona subagent returns this shape. Fixing the schema makes synthesis mechanical instead of prose-parsing.
 
 ```typescript
 type CouncilVerdict = "for" | "against" | "depends";
@@ -100,10 +139,11 @@ type PersonaResponse = {
   readonly keyConcerns: readonly string[];
   readonly tradeoffsRaised: readonly string[];
   readonly recommendation: string;
+  readonly groundedIn?: readonly string[]; // repo facts the verdict leans on; absent when not rooted
 };
 ```
 
-The selection itself follows this shape, which is pure once `routedBy` is `explicit` or `keyword`:
+The selection follows this shape, which is pure once `routedBy` is `explicit` or `keyword`:
 
 ```typescript
 type Mode = "duo" | "triad";
@@ -117,10 +157,32 @@ type Selection = {
 };
 ```
 
+Each discovery subagent returns a finding, so the merge into a brief is mechanical:
+
+```typescript
+type DiscoveryFinding = {
+  readonly question: string;           // the scoped question this agent investigated
+  readonly filesRead: readonly string[];
+  readonly facts: readonly string[];   // concrete observations, each tied to a file
+  readonly relevant: boolean;          // false when nothing bearing on the question was found
+};
+```
+
+The orchestrator folds the findings into one lean brief that every persona subagent receives. The raw `DiscoveryFinding[]` stays with the orchestrator for the echo; the personas get only this:
+
+```typescript
+type RepoBrief = {
+  readonly rooted: boolean;                // false when no repo, or discovery was skipped
+  readonly filesRead: readonly string[];   // union across findings, echoed for audit
+  readonly conventions: readonly string[]; // language, build tooling, existing patterns
+  readonly summary: string;                // synthesis of the findings, not raw file dumps
+};
+```
+
 ## Reference files
 
 - `references/council.md` is the roster and the polarity pairs. It is lightweight and you read it to route and to resolve a *flex* duo. Read it first.
-- `references/routing.md` is the unified topic table: anchor terms, `defaultDuo`, `defaultTriad`, and the tie-break precedence list. This is Layer 2.
+- `references/routing.md` is the unified topic table: anchor terms, `defaultDuo`, `defaultTriad`, the tie-break precedence list, and the per-topic discovery hints that tell discovery what to look for. This is Layer 2.
 - `references/personas/<member>.md` is the heavy persona prompt. A persona file loads only inside the subagent assigned that member, which keeps the token budget tied to the council size rather than the full roster.
 
 ## Guardrails

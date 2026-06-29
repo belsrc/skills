@@ -123,3 +123,28 @@ When two topics score equally on keyword hits, the more specific topic wins. Res
 18. system-design-new-project
 
 The rationale: narrow, concrete topics (a crypto question, an "is this worth optimizing" question, a context-window or agent-harness question) sit above broad catch-alls (architecture-review, system-design-new-project), so a specific request does not get swallowed by a general bucket. The two AI-application topics sit above ml-system-design so a question about prompts, context, or agent harnesses does not route into the classical-ML bucket.
+
+## Discovery hints
+
+When discovery runs (see Step 3 in `SKILL.md`), the topic seeds what to look for in the repo. These are starting points for the scoped questions, not a fixed checklist. Discovery stays bounded regardless.
+
+| topic | look for |
+|-------|----------|
+| architecture-review | module boundaries, dependency directions, where layering is enforced or violated |
+| distributed-systems | shared state, retry/timeout/idempotency handling, consistency assumptions |
+| microservices-vs-monolith | current service or module boundaries, shared data stores, the deployment unit |
+| security-audit | input handling, auth checks, trust boundaries, where untrusted data flows |
+| cryptography | which primitives and libraries are used, key handling, custom vs standard constructions |
+| performance-investigation | hot paths, loops over large data, allocations, existing benchmarks |
+| optimization-decision | whether the code is on a hot path, any benchmark, current complexity |
+| ml-system-design | the data pipeline, the eval or metric, the model and training setup |
+| code-review | the function or module under review, its tests, surrounding conventions |
+| api-design | the public surface, existing signatures and flags, call sites, consistency with siblings |
+| language-type-design | existing type definitions, generic usage, how the surface is typed |
+| incident-response | relevant logs or runbooks, recent changes, error handling around the failure |
+| production-debugging | the failing path, instrumentation present, reproduction conditions |
+| refactoring-strategy | the target code, its tests, coupling and call sites |
+| testing-strategy | existing tests, coverage gaps, test tooling and patterns |
+| context-engineering | how prompts and context are assembled, retrieval or memory, token budgeting |
+| agent-engineering | the agent loop, tool definitions, orchestration and state, trust boundaries |
+| system-design-new-project | existing scaffolding, the chosen stack and conventions, stated constraints |

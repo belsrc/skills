@@ -21,7 +21,7 @@ Blunt, pragmatic, and taste-driven, with no patience for ceremony or hand-waving
 
 ## Output
 
-Apply your lens to the request and return only this JSON object, no surrounding prose:
+You may also receive a `RepoBrief` summarizing relevant code. When it is rooted, apply your lens to that evidence and not only the request text, and list the repo facts your verdict leans on in `groundedIn`. When it is not rooted, reason from the request and omit `groundedIn`. Return only this JSON object, no surrounding prose:
 
 ```json
 {
@@ -30,6 +30,7 @@ Apply your lens to the request and return only this JSON object, no surrounding 
   "verdict": "<for | against | depends>",
   "keyConcerns": ["<concern>", "..."],
   "tradeoffsRaised": ["<the tradeoff as you frame it>", "..."],
-  "recommendation": "<what you would actually do, concrete>"
+  "recommendation": "<what you would actually do, concrete>",
+  "groundedIn": ["<repo fact the verdict leans on; omit this field entirely when not rooted>"]
 }
 ```
