@@ -2,7 +2,7 @@
 name: engineering-council
 description: Convene a council of engineering personas (Knuth, Beck, Carmack, Lamport, Fowler, Schneier, Hickey, and more) to evaluate a technical decision from opposing viewpoints, then synthesize where they agree and where they conflict. Use this whenever the user wants multiple expert perspectives on a hard call, a design or architecture review, a debate between schools of thought, a tradeoff analysis, or says "engineering council", "council", "duo", "triad", or "what would X think". Trigger even when the user does not name the skill but is weighing a difficult architecture, performance, security, ML, API, testing, refactoring, or distributed-systems decision and would benefit from contrasting expert takes rather than a single answer.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Engineering Council
@@ -27,19 +27,27 @@ request
 [echo]  selection + brief + files read                                   audit gate
    │
    ▼
-[council]  map: one persona subagent per member, given the RepoBrief
-           reduce: synthesize positions, agreements, splits               uncorrelated takes
+[council]  map: one persona subagent per member, given the RepoBrief     round one, uncorrelated
+   │
+   ▼
+[debate]  optional: re-spawn each member with the others' round-one      round two, opt-in
+          positions; one rebuttal pass, capped at two rounds
+   │
+   ▼
+[synthesize]  positions, agreements, splits, and movement if debated
 ```
 
 Routing runs in two layers so it stays auditable. Layer 2 is a literal lookup in `references/routing.md`: a topic plus a mode always yields the same member set. Layer 1 picks the topic, keyword-first so the common path is reproducible, with the model reasoning over the closed topic enum only when no anchor terms match.
 
-Both fan-outs use isolated subagents on purpose. In discovery, raw file contents live and die inside the discovery subagents, so only distilled findings reach the orchestrator and the council never holds file dumps. In the council, each persona reasons from a clean context anchored on its own definition, the request, and the shared brief, which produces uncorrelated takes instead of personas that have read each other and converged.
+Both fan-outs use isolated subagents on purpose. In discovery, raw file contents live and die inside the discovery subagents, so only distilled findings reach the orchestrator and the council never holds file dumps. In the council, each persona reasons from a clean context anchored on its own definition, the request, and the shared brief, which produces uncorrelated takes instead of personas that have read each other and converged. The debate round is on by default and adds one rebuttal pass at roughly double the council cost; opt out for a single-round read, and it skips itself when round one is unanimous.
 
 ## Step 1: Determine the mode
 
 Default is `duo` (a polarity pair, dialectical, two opposing lenses). Use `triad` (three members, multi-perspective) when the user asks for it, names three members, or the request clearly spans more than one domain.
 
 A duo is not just "two members". It is the polarity pair whose axis straddles the core tension of the request. A triad is three members chosen to cover distinct relevant domains. Mode therefore changes *which* members get picked, not only how many.
+
+Also detect whether the debate round was opted out of. Debate is an orthogonal flag, not a mode: it works with either duo or triad, and it is on by default, because the rebuttal pass is a core part of how the council reaches a considered position rather than a juxtaposition of first reactions. Turn it off only when the user asks ("no debate", "single round", "just the takes", "skip the rebuttal"). It controls Step 6.
 
 ## Step 2: Select the members
 
@@ -85,11 +93,12 @@ Why: <one line>
 Grounded: <rooted ? "yes" : "no">
 Files read: <files, or "none (reasoning from the request)">
 Brief: <one to three line summary, or "n/a">
+Debate: <on | off>
 ```
 
 The `routedBy` field makes the routing inspectable; the files-read line makes the grounding inspectable, so a mis-scoped discovery is visible rather than silent. Never omit either.
 
-## Step 5: Spawn the council
+## Step 5: Spawn the council (round one)
 
 Launch one subagent per selected member, all in the same turn so they run in parallel and isolated. Give each subagent exactly these things and nothing else:
 
@@ -102,9 +111,29 @@ When the brief is `rooted`, the persona applies its lens to that evidence and no
 
 Do not let a subagent see another member's response. The isolation is what keeps the takes uncorrelated. Every persona gets the same brief, so the only thing that differs between them is the lens.
 
-## Step 6: Synthesize with structured dissent
+When debate is on, which is the default, this is round one and Step 6 follows. When it was opted out, go straight to synthesis.
 
-Collect the `PersonaResponse` objects and produce the output below. Surface disagreement, do not vote it away. Diff the `verdict` and `tradeoffsRaised` fields across members to find the contested axes mechanically, rather than guessing where they disagree. When members carry `groundedIn`, note where a position leans on a repo fact, and when a split turns on a repo fact rather than pure principle, say so, because that is the disagreement most worth the reader's attention.
+## Step 6: Debate round (optional)
+
+Runs by default. Skip it only in two cases: the user opted out in Step 1, or round one came back unanimous with no contested axis, since a rebuttal has nothing to engage when everyone already agrees. In the unanimous case, note it and go straight to synthesis. Otherwise it adds exactly one rebuttal pass on top of round one, so the council runs at most two rounds.
+
+After round one returns, re-spawn each member in parallel, all in the same turn. Give each rebuttal subagent:
+
+1. an instruction to read `references/personas/<member>.md` and adopt it, the same persona as round one,
+2. the request and the shared `RepoBrief`, the same as round one,
+3. its own round-one `PersonaResponse`,
+4. the other members' round-one positions (stance, verdict, and key points),
+5. the instruction to return only a `PersonaRebuttal` JSON object (schema below) instead of the `PersonaResponse` its persona file describes, no prose around it.
+
+Ask each persona to engage the others directly: concede a point that lands, sharpen a disagreement the others underweighted, or hold firm with a better argument. Set `moved` true only when the revised verdict or the core of the position actually changed, not for cosmetic edits.
+
+Preserve isolation within the round. Every rebuttal subagent sees the others' round-one outputs, never their live round-two reasoning, because they all run in parallel from the same round-one context. That keeps the second pass uncorrelated, the same property that makes round one worth running as isolated subagents.
+
+Cap it here. Two rounds is the limit. Do not run a third, because the marginal movement does not justify another N calls.
+
+## Step 7: Synthesize with structured dissent
+
+When debate was off, synthesize over the round-one `PersonaResponse` objects. When debate ran, synthesize over the final state: each member's position is its `PersonaRebuttal` (the `revisedVerdict`, the refined `stance`, the updated `recommendation`), and you still draw on the round-one `tradeoffsRaised` for the fuller picture of the axes. Surface disagreement, do not vote it away. Diff the verdicts and the tradeoffs across members to find the contested axes mechanically, rather than guessing where they disagree. When members carry `groundedIn`, note where a position leans on a repo fact, and when a split turns on a repo fact rather than pure principle, say so, because that is the disagreement most worth the reader's attention.
 
 Use this exact structure:
 
@@ -121,11 +150,14 @@ Use this exact structure:
 ### Where they split
 <the contested axes. for each, name the tradeoff and which member sits on which side. flag any split that turns on a repo fact. this is the heart of the output>
 
+### How positions moved
+<debate only. for each member whose moved is true, name what shifted and the specific argument that moved them; note who held firm. omit this section entirely when debate was off>
+
 ### Reading
 <either a synthesized recommendation when the evidence points one way, or an explicit handoff: "the call hinges on <axis>; if you weight <X> over <Y>, go with <member>'s read.">
 ```
 
-Only produce a single verdict tally when the question is genuinely binary, and even then show the split. Mark each position as grounded or from principle only when discovery ran; with no brief, drop the tag.
+Only produce a single verdict tally when the question is genuinely binary, and even then show the split. Mark each position as grounded or from principle only when discovery ran; with no brief, drop the tag. Include the movement section only when debate ran; the hinge a persona conceded or held on is often the most informative line in the whole output.
 
 ## The contracts
 
@@ -142,6 +174,19 @@ type PersonaResponse = {
   readonly tradeoffsRaised: readonly string[];
   readonly recommendation: string;
   readonly groundedIn?: readonly string[]; // repo facts the verdict leans on; absent when not rooted
+};
+```
+
+When debate runs (Step 6), each member returns this on the second pass instead of a `PersonaResponse`. It carries the movement-relevant delta plus the final recommendation, so synthesis has the post-debate position without re-deriving it; the round-one `tradeoffsRaised` still supplies the fuller axis picture.
+
+```typescript
+type PersonaRebuttal = {
+  readonly member: string;
+  readonly respondsTo: readonly string[];  // members whose points this answers
+  readonly revisedVerdict: CouncilVerdict;  // may match round one or move
+  readonly stance: string;                  // refined position after seeing the others
+  readonly recommendation: string;          // final recommendation, which can change when moved
+  readonly moved: boolean;                   // whether this persona changed its position
 };
 ```
 

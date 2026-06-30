@@ -13,6 +13,7 @@ The point is not a single answer. It is a legible map of the decision space, wit
 - [Invocation and modes](#invocation-and-modes)
 - [How routing works](#how-routing-works)
 - [Discovery and grounding](#discovery-and-grounding)
+- [Debate round](#debate-round)
 - [Contracts](#contracts)
 - [Output format](#output-format)
 - [File layout](#file-layout)
@@ -48,6 +49,7 @@ Grounded: yes
 Files read: src/entity/update.ts, bench/update.bench.ts
 Brief: update loop allocates a new array per entity per frame; an
        existing benchmark covers it; no SoA layout in the codebase yet
+Debate: on
 ```
 
 ## What it does
@@ -80,6 +82,8 @@ The skill parses intent from your message. You can steer it three ways, listed h
 | Just describe the problem | `keyword`, then `llm` fallback | keyword path is stable; fallback only when no anchor matches |
 
 Mode defaults to `duo`. Say "triad" or name three members to get the three-perspective structure. Mode also changes which members are chosen, beyond the count: a duo is the polarity pair whose axis straddles the core tension, and a triad is three members spanning the relevant domains.
+
+Debate is an orthogonal flag, on by default and independent of mode. The rebuttal round runs unless you opt out ("no debate", "single round", "just the takes"), and it skips itself when round one is unanimous. It works with either a duo or a triad. See [Debate round](#debate-round) for what it does and what it costs.
 
 ## How routing works
 
@@ -130,6 +134,24 @@ Each grounded persona carries a `groundedIn` list naming the repo facts its verd
 
 One assumption worth stating: discovery feeds file contents to subagents, which is a prompt-injection surface if the repo holds untrusted material. For your own codebases that is a non-issue, so the skill assumes a trusted repo rather than defending against it.
 
+## Debate round
+
+By default the council runs two rounds. Round one is the isolated pass: each persona reasons alone, never seeing the others. Round two is the rebuttal: the orchestrator re-spawns each member with the others' round-one positions attached and asks it to engage them, concede a point that lands, sharpen a disagreement the others underweighted, or hold firm with a better argument. The synthesis then runs over round two and adds a "How positions moved" section, which is often the most informative part, since a persona changing its verdict after a specific counterargument tells you where the real hinge is.
+
+Without the rebuttal, the personas never actually respond to each other and the synthesis can only reconstruct the contrast from juxtaposed first reactions. The debate round is what turns the council from parallel monologues into an argument, which is why it is on by default.
+
+```
+[council]  round one: N isolated persona subagents ──► PersonaResponse[]
+   │
+   ▼
+[debate]   round two: re-spawn each member with the others' round-one
+           positions ──► PersonaRebuttal[]                 (opt-in, capped at two rounds)
+```
+
+Two properties are kept deliberately. Isolation holds within each round: a round-two subagent sees the others' round-one outputs but never their live round-two reasoning, because they all run in parallel from the same round-one context, so the second pass stays uncorrelated. And it is capped at two rounds, because subagents cannot talk to each other (the orchestrator shuttles context between rounds, making round two serially dependent on round one and roughly doubling the cost to 2N calls), and a third round does not earn its keep.
+
+It is on by default because the rebuttal is core to the result, not a luxury. Two cases skip it: opting out ("no debate", "single round") when you want a fast single-round read, and a unanimous round one, where there is no contested axis for a rebuttal to engage and the second pass would only burn calls.
+
 ## Contracts
 
 The data shapes hold the system together. All of them live in `SKILL.md` and follow the repo's TypeScript conventions (`type` over `interface`, no classes).
@@ -147,6 +169,19 @@ type PersonaResponse = {
   readonly tradeoffsRaised: readonly string[];
   readonly recommendation: string;
   readonly groundedIn?: readonly string[]; // repo facts the verdict leans on; absent when not rooted
+};
+```
+
+When a debate runs, each member returns this on the second pass instead, carrying the movement delta plus the final recommendation. Synthesis reads the post-debate position from it and still draws on the round-one `tradeoffsRaised` for the fuller axis picture:
+
+```typescript
+type PersonaRebuttal = {
+  readonly member: string;
+  readonly respondsTo: readonly string[];  // members whose points this answers
+  readonly revisedVerdict: CouncilVerdict;  // may match round one or move
+  readonly stance: string;                  // refined position after seeing the others
+  readonly recommendation: string;          // final recommendation, which can change when moved
+  readonly moved: boolean;                   // whether this persona changed its position
 };
 ```
 
@@ -200,12 +235,16 @@ the shared ground, omitted if there is none
 each contested axis, naming the tradeoff and which member sits on which side;
 a split that turns on a repo fact is flagged as such
 
+### How positions moved
+debate only: for each member who shifted, what changed and the argument that
+moved them, plus who held firm; omitted entirely when debate was off
+
 ### Reading
 a synthesized recommendation when the evidence points one way, or an explicit
 handoff: "the call hinges on <axis>; if you weight X over Y, go with <member>'s read"
 ```
 
-A verdict tally appears only when the question is genuinely binary, and even then the split is shown. The grounded-or-from-principle tag appears only when discovery ran; with no brief, it is dropped.
+A verdict tally appears only when the question is genuinely binary, and even then the split is shown. The grounded-or-from-principle tag appears only when discovery ran; with no brief, it is dropped. The movement section appears only when a debate ran.
 
 ## File layout
 
@@ -263,6 +302,14 @@ Should this CLI save scan output to a file, or should users just redirect with >
 
 Routes to `api-design` (Ousterhout vs Pike). Because the question names a concrete tool, discovery fires: a subagent reads the CLI entry point and finds it already writes only to stdout and imports no filesystem module, and another checks sibling subcommands for an existing `--output` flag. Both personas still land on "use redirection," but now Ousterhout's verdict carries `groundedIn: ["scan writes only to stdout", "no fs import in the scan path"]`, so the synthesis tags it grounded rather than argued in the abstract. Had discovery found an existing `--output` flag on a sibling command, the same unanimous call would instead surface a consistency split the text alone could not see.
 
+**Debate by default.**
+
+```
+Should this service own its data, or share the existing database with the monolith?
+```
+
+Routes to `microservices-vs-monolith` (Fowler vs DHH), and the rebuttal pass runs without being asked. Round one gives the two positions in isolation. Round two re-spawns each with the other's round-one stance attached, so DHH gets to answer Fowler's evolvability argument directly and Fowler gets to answer DHH's "you do not have that scale problem yet." The synthesis adds a "How positions moved" section: if Fowler concedes that a shared database is fine until a concrete seam appears, that concession is the most useful line in the output, because it tells you the call hinges on whether that seam exists yet. Add "single round" to the request if you want the faster one-pass read instead.
+
 ## Extending the council
 
 The skill is data, so extension is mostly editing reference files. After any change, run the consistency check at the end of this section.
@@ -290,38 +337,16 @@ Preserve these when updating the skill. They are the load-bearing decisions, and
 2. **Layer 2 is a pure lookup.** Topic plus mode maps to members with no model in the loop. Keep classification confined to Layer 1.
 3. **Referential integrity.** Every member named in `routing.md` or `council.md` has a persona file. Run the check above.
 4. **Personas channel documented public philosophy**, framed as that philosophy applied to the request, with no fabricated quotes. This is both a courtesy to real people and a quality lever, since anchoring on documented positions keeps the lenses sharp.
-5. **The `PersonaResponse` schema is the synthesis contract.** Change it and you must update the synthesis step in `SKILL.md` and the Output block in all 32 persona files together. The `groundedIn` field is part of that schema, so the same rule applies to it.
+5. **The `PersonaResponse` schema is the synthesis contract.** Change it and you must update the synthesis step in `SKILL.md` and the Output block in all 33 persona files together. The `groundedIn` field is part of that schema, so the same rule applies to it. `PersonaRebuttal` (the debate round-two shape) is part of the synthesis contract too, but it is supplied by the orchestrator at round two and is not in the persona files.
 6. **Discovery grounds, it does not route.** Discovery runs after routing and only feeds the personas evidence. Do not let it pick the topic or the members, since that would reintroduce the chicken-and-egg problem (you need the topic to scope discovery) and sacrifice the deterministic routing.
 7. **Raw file content stays inside discovery subagents.** Only distilled `DiscoveryFinding` and `RepoBrief` data reaches the orchestrator. The whole point of the fan-out is to keep file dumps out of the context that has to survive to synthesis, so never paste file contents into the brief.
 8. **Discovery is default-on with opt-out, and degrades gracefully.** Keep the trigger conditions (in a repo, request implicates concrete artifacts) and the no-repo and skip paths intact. Assume a trusted repo; if that assumption ever changes, the prompt-injection surface has to be addressed before discovery can be trusted on untrusted code.
-9. **House style.** No em dashes or en dashes anywhere; restructure instead. TypeScript uses `type` over `interface` and functions over classes.
+9. **The debate round is on by default with opt-out, capped at two rounds, and isolated within a round.** It skips only on explicit opt-out or a unanimous round one. Round two sees only round-one outputs, never live round-two reasoning, so the second pass stays uncorrelated. The rebuttal format and the cross-persona context are supplied by the orchestrator at round two, never baked into the persona files, which keeps personas round-one and reusable.
+10. **House style.** No em dashes or en dashes anywhere; restructure instead. TypeScript uses `type` over `interface` and functions over classes.
 
 ## Future additions
 
-Two extensions were designed but deferred to keep v1 lean. Neither is implemented yet. Both are additive: they expand an existing fan-out rather than changing the pipeline, so neither disturbs what is in place. They also compose, since a debate round and per-persona discovery are independent levers.
-
-### Debate round (conversational orchestration)
-
-Today the council is single-round. Each persona reasons in isolation and never sees the others, and the synthesis reconstructs the contrast from the returned verdicts. That captures most of the value, the contested axes, at the lowest cost, but it is not a debate. The personas never actually respond to each other.
-
-A debate round adds a second pass. After round one, the orchestrator collects the positions and re-spawns each persona with the others' round-one positions attached, asking it to respond and refine: concede a point, sharpen a disagreement, or hold firm with a better argument. The synthesis then runs over round two and can show how positions moved, which is often the most informative part, since a persona changing its verdict after seeing a specific counterargument tells you where the real hinge is.
-
-The constraints that shaped the deferral still hold. Subagents cannot talk to each other, so the orchestrator has to shuttle context between rounds, which makes round two serially dependent on round one and roughly doubles the subagent cost to 2N calls. Isolation should be preserved within a round: in round two a persona sees the others' round-one outputs but not their live round-two reasoning, so the takes stay uncorrelated within each pass. Keep it opt-in (a "debate" flag), and cap it at two rounds to avoid a runaway loop with diminishing returns.
-
-A minimal contract for the second pass, not yet implemented:
-
-```typescript
-// not yet implemented
-type PersonaRebuttal = {
-  readonly member: string;
-  readonly respondsTo: readonly string[];   // members whose points this answers
-  readonly revisedVerdict: CouncilVerdict;   // may match round one or move
-  readonly stance: string;                   // refined position after seeing the others
-  readonly moved: boolean;                    // whether this persona changed its position
-};
-```
-
-Why deferred: the single-round design plus a contrast-aware synthesis delivers the decision-relevant disagreement for a fraction of the cost, so the base had to be solid first. The debate round is the payoff layer on top, not a correctness fix.
+One extension was designed but deferred to keep the cost bounded. It is not implemented yet, and it is additive: it expands an existing fan-out rather than changing the pipeline, so it would not disturb what is in place. (The debate round, previously listed here, is now implemented; see [Debate round](#debate-round).)
 
 ### Per-persona discovery
 
@@ -348,10 +373,6 @@ type LensBrief = {
 Scope this to the topics that actually benefit rather than running it always. Audit-type and diagnostic topics (`security-audit`, `production-debugging`, `performance-investigation`) are where lenses diverge most in what they need to see; for a clean api-design question the shared brief is usually enough. Cost and reproducibility are the tradeoffs, since each supplement is another model-driven read, so the per-persona pass should stay opt-in or topic-gated.
 
 Why deferred: the centralized brief delivers grounding at roughly one extra pass and matches the token-economy goals of v1. Per-persona discovery is the depth lever for audits, worth adding once there is a real audit workload to justify the extra reads.
-
-The roster, the polarity pairs, and the original duo and triad groupings come from a prior brainstorming document, the Engineering Council of High Intelligence, itself adapted from the Council of High Intelligence concept. The single unified topic table, the two-layer routing, the isolation-based subagent design, and the persona contract were added when the concept was turned into a runnable skill.
-
-The AI-space slice (Karpathy, Khattab, Chase, Willison, Husain, Yao) and its two topics, `context-engineering` and `agent-engineering`, were added afterward to cover decisions about context, prompting, skills, and agent harnesses, which the classical-ML members (LeCun, Pearl, Ng, Chollet) do not speak to.
 
 ## Acknowledgements
 
