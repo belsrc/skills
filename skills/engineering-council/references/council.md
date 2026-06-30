@@ -38,6 +38,7 @@ Read this to route a request and to resolve a *flex* duo. It is intentionally li
 | willison    | Simon Willison        | Minimal LLM tooling           | Small sharp tools, watch for the lethal trifecta                              |
 | husain      | Hamel Husain          | LLM evaluation                | You do not know it works until you look at your data                          |
 | yao         | Shunyu Yao            | Language agent architectures  | Structure the reasoning; then check you are measuring the right thing         |
+| dijkstra    | Edsger W. Dijkstra    | Program correctness           | Derive it and prove it; testing shows the presence of bugs, never their absence |
 
 ## Polarity pairs
 
@@ -61,5 +62,7 @@ These are the canonical dialectical axes. A duo is one of these pairs unless the
 | karpathy vs khattab   | curate context by hand vs compile and optimize prompts |
 | chase vs willison     | framework orchestration vs minimal cautious tooling    |
 | yao vs willison       | structured reasoning scaffolds vs thin harness         |
+| dijkstra vs beck      | derive and prove it correct vs test-driven iteration   |
+| dijkstra vs torvalds  | elegance and rigor vs talk is cheap, show me the code  |
 
 Note: willison anchors the minimalist pole against two different maximalisms, framework orchestration (chase) and reasoning scaffolds (yao). A member appearing in more than one pair is expected, since the personas are opponent-agnostic and the contrast is a property of the pairing, not the persona.

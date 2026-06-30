@@ -91,7 +91,7 @@ Each topic lists:
 
 ### testing-strategy
 - anchors: testing, tests, TDD, coverage, unit test, integration test, property-based, verify, mock, test strategy
-- defaultDuo: beck vs lamport
+- defaultDuo: beck vs dijkstra
 - defaultTriad: beck, martin, lamport
 
 ### system-design-new-project

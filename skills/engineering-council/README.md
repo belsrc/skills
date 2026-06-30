@@ -19,7 +19,8 @@ The point is not a single answer. It is a legible map of the decision space, wit
 - [Examples](#examples)
 - [Extending the council](#extending-the-council)
 - [Design invariants](#design-invariants)
-- [Provenance](#provenance)
+- [Future additions](#future-additions)
+- [Acknowledgements](#acknowledgements)
 
 ## Installation
 
@@ -213,18 +214,18 @@ engineering-council/
 ├── SKILL.md                       orchestration: mode, selection, spawn, synthesis
 ├── README.md                      this file
 └── references/
-    ├── council.md                 roster (32 members) + 16 polarity pairs; read to route
+    ├── council.md                 roster (33 members) + 18 polarity pairs; read to route
     ├── routing.md                 Layer 2 topic table + tie-break precedence + discovery hints
-    └── personas/                  32 persona prompts, one per member
+    └── personas/                  33 persona prompts, one per member
         knuth.md  beck.md  carmack.md  muratori.md  lamport.md  vogels.md
         fowler.md  dhh.md  schneier.md  kaminsky.md  marlinspike.md  green.md
         martin.md  hickey.md  lecun.md  pearl.md  ng.md  chollet.md
         allspaw.md  majors.md  pike.md  hejlsberg.md  kay.md  torvalds.md
         ousterhout.md  abramov.md  karpathy.md  khattab.md  chase.md
-        willison.md  husain.md  yao.md
+        willison.md  husain.md  yao.md  dijkstra.md
 ```
 
-`council.md` is lightweight and the orchestrator reads it on every run to route and to resolve a flex duo. A persona file is heavy and loads only inside the subagent assigned that member, which ties the token cost to the council size rather than the full roster of 32.
+`council.md` is lightweight and the orchestrator reads it on every run to route and to resolve a flex duo. A persona file is heavy and loads only inside the subagent assigned that member, which ties the token cost to the council size rather than the full roster of 33.
 
 ## Examples
 
