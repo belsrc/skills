@@ -1,6 +1,8 @@
 ---
 name: engineering-council
 description: Convene a council of engineering personas (Knuth, Beck, Carmack, Lamport, Fowler, Schneier, Hickey, and more) to evaluate a technical decision from opposing viewpoints, then synthesize where they agree and where they conflict. Use this whenever the user wants multiple expert perspectives on a hard call, a design or architecture review, a debate between schools of thought, a tradeoff analysis, or says "engineering council", "council", "duo", "triad", or "what would X think". Trigger even when the user does not name the skill but is weighing a difficult architecture, performance, security, ML, API, testing, refactoring, or distributed-systems decision and would benefit from contrasting expert takes rather than a single answer.
+metadata:
+  version: "1.1.0"
 ---
 
 # Engineering Council

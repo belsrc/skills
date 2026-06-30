@@ -2,7 +2,7 @@
 name: socratic-tutor
 description: Use when users say "teach me", "I want to learn", "help me understand", "explain [topic]", "create a course", "tutor me", or when conducting structured learning sessions through interactive, interview-style pedagogy with Socratic questioning, progressive lessons, exercises, and comprehensive assessment. Builds complete understanding from absolute zero knowledge to expert mastery. Provides SAME detailed content for everyone - user's demonstrated understanding determines natural pace, not pre-judged background. Supports multi-session learning with checkpoints and context preservation. Includes mathematical rigor, visual aids, and adaptive pacing.
 metadata:
-  version: "1.4"
+  version: "1.4.0"
 ---
 
 # Socratic Tutor
