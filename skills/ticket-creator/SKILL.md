@@ -1,6 +1,8 @@
 ---
 name: ticket-creator
 description: Create structured project tickets from user intent. Use when the user wants to create a ticket, formalize a feature request, document a bug or task, or turn a conversation into a structured ticket. Handles project prefix detection, ticket numbering, and context gathering automatically.
+metadata:
+  version: "1.0.0"
 ---
 
 # Ticket Creator
