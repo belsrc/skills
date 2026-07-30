@@ -349,5 +349,3 @@ Day 10: Resume with Session 3 checkpoint
 ```
 
 Even with breaks, the learning path remains coherent and comprehensive.
-
----
