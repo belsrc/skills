@@ -1,5 +1,6 @@
 ---
 name: human-english
+version: 1.0.1
 description: |
   Write or rewrite text so it reads as clear and human, not AI slop. Merges
   ASD-STE100 Simplified Technical English (structural rules: sentence
@@ -250,7 +251,7 @@ GR-6 for software docs: "e.g." → "for example", "i.e." → "that is", and dele
 | CP-9 | Rule-of-three padding (forcing ideas into groups of three) | Cut to however many items are actually true. |
 | CP-10 | Elegant variation / synonym cycling (protagonist/main character/central figure/hero for one entity) | Pick one term. Already required by Rule 1.11 in Pragmatic/Strict; apply the same discipline in Voice mode. |
 | CP-11 | False ranges ("from the Big Bang to the cosmic web") where the endpoints are not on a real scale | Name what is actually covered. |
-| CP-12 | Formatting tells: em-dash overuse, mechanical **boldface**, inline-header bullet lists ("**Security:** ..."), Title Case Headings, emoji decoration, curly quotes | Plain punctuation, sentence-case headings, no emoji, straight quotes. Curly quotes are also an Untouchables risk near code — see below. |
+| CP-12 | Formatting tells: em-dash overuse, mechanical **boldface**, inline-header bullet lists ("**Security:** ..."), emoji decoration, curly quotes | Plain punctuation, sentence-case headings, no emoji, straight quotes. Curly quotes are also an Untouchables risk near code — see below. |
 | CP-13 | Collaborative chat residue ("I hope this helps!", "Certainly!", "Let me know if...") pasted into delivered content | Delete. It was never part of the document. |
 | CP-14 | Knowledge-cutoff disclaimers ("As of [date]...", "based on available information...") | State the fact with its actual date, or omit if unknown — do not hedge about the model's own limits. |
 | CP-15 | Sycophantic / servile tone ("Great question! You're absolutely right that...") | Delete the praise. State the substance. |
