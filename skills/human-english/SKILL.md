@@ -1,6 +1,5 @@
 ---
 name: human-english
-version: 1.0.1
 description: |
   Write or rewrite text so it reads as clear and human, not AI slop. Merges
   ASD-STE100 Simplified Technical English (structural rules: sentence
@@ -16,7 +15,6 @@ description: |
   "make this sound human", "STE", "Simplified Technical English",
   "ASD-STE100", "write for non-native readers", "remove AI patterns/tells",
   or any request to check or rewrite AI-sounding text.
-license: MIT
 allowed-tools:
   - Read
   - Write
@@ -26,6 +24,7 @@ allowed-tools:
   - AskUserQuestion
 compatibility: claude-code cursor codex gemini-cli opencode
 metadata:
+  version: 1.0.1
   standard: ASD-STE100 Issue 9 (2025-01-15)
   merged-from: simple-english v1.0.0 (structural precedence), humanizer v2.1.1 (content-pattern layer)
 ---
