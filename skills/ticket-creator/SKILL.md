@@ -2,7 +2,7 @@
 name: ticket-creator
 description: Create structured project tickets from user intent. Use when the user wants to create a ticket, formalize a feature request, document a bug or task, or turn a conversation into a structured ticket. Handles project prefix detection, ticket numbering, and context gathering automatically.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Ticket Creator
@@ -50,6 +50,7 @@ Follow this workflow:
 
 1. **Gather Project Context** - understand the codebase:
    - Check for existing tickets (`.tickets/`, `docs/tickets/`, `tickets/`, `.md` files with ticket patterns)
+   - Check for `openspec/` — if present, read `openspec/specs/INDEX.md` (or the relevant `spec.md` files directly) to understand the current, canonical state of the capability this ticket touches, and scan `openspec/changes/` for in-flight changes that might already cover or overlap with this intent. Specs reflect current standing more reliably than reading code alone, since code may be mid-change.
    - Read `README.md`, `CLAUDE.md`, `AGENTS.md` for project context
    - Check tech stack indicators (`package.json`, `Cargo.toml`, `go.mod`, etc.)
    - Sample relevant source files if the ticket mentions specific components
@@ -84,6 +85,10 @@ Ticket metadata:
 Follow this workflow:
 
 1. **Gather Project Context** - Research the codebase to write meaningful acceptance criteria:
+
+   **Check for `openspec/` first, regardless of other context sources:**
+   - If `openspec/specs/` exists, read `openspec/specs/INDEX.md` (or the relevant `spec.md` files directly if there's no index) to ground the ticket in the current, canonical capability state rather than assumptions from skimming code.
+   - Check `openspec/changes/` for in-flight changes that might already cover this ticket's intent. If one does, note it under `Dependencies` instead of writing a duplicate or conflicting ticket.
 
    **If opsx:explore skill is available:**
    - Invoke `/opsx:explore` with a focused prompt about what this ticket touches
@@ -148,10 +153,10 @@ Acceptance Criteria:
 - [Edge cases covered]
 - [Performance requirements if applicable]
 
-[Optional: Additional context, architecture decisions, or approach]
+[Optional: Additional non-binding context — e.g., known constraints, external interfaces/contracts, or relevant history]
 
-**[Optional subsection heading]:**
-[Bulleted details, tables, or code examples]
+**[Optional subsection heading, e.g. "Context for Implementer"]:**
+[Bulleted details, tables, or interface/contract definitions — framed as background, not instructions]
 ```
 
 **Filling guidelines:**
@@ -172,7 +177,7 @@ Acceptance Criteria:
   - Integration/deployment considerations
   - Edge cases to handle
   - Performance requirements (if applicable)
-- **Optional sections**: Add subsections if helpful (e.g., "Technical Approach", "Security Considerations", "Migration Plan")
+- **Optional sections**: Add subsections if helpful (e.g., "Security Considerations", "Context for Implementer"), but keep them descriptive of constraints/context, not prescriptive of implementation. Avoid a "Technical Approach" section that dictates files, functions, or step-by-step mechanics — see "Describe outcomes, not implementations" below.
 
 ### 5. Output the Ticket
 
@@ -193,6 +198,8 @@ After outputting, briefly mention:
 **Capture the why**: The description should explain motivation, not just what to do. Future readers need to understand why this work mattered.
 
 **Use domain language**: Mirror terminology from the codebase (e.g., if the code calls them "rules" not "checks", use "rules").
+
+**Describe outcomes, not implementations**: Tickets should say *what* must change, not *how* to change it. Avoid naming specific files, functions, line numbers, or step-by-step technical approaches — code shifts between when a ticket is written and when it's picked up, and "how" details go stale fast while "what" (behavior, contracts, criteria) stays valid. Exceptions: a known external constraint (e.g., "must use the existing `AuthProvider` interface") or an interface/schema contract that is itself part of the requirement, not a suggested approach. If research turns up implementation-relevant findings, offer them separately as clearly non-binding context (e.g., under "Context for Implementer"), not as directives in the Acceptance Criteria or Description.
 
 ## Examples
 
@@ -293,10 +300,6 @@ Acceptance Criteria:
 - Unit test verifies behavior with empty directory
 - Integration test runs scanner on `fixtures/empty-dir/` and validates output
 - Edge case covered: directory exists but all files are ignored by config
-
-**Technical Approach:**
-- Add null check in `src/utils/file-discovery.ts` before iterating files
-- Return early with informational message instead of proceeding to scan phase
 ```
 
 ---
